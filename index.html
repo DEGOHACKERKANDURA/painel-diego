@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000">
+  <title>Painel Informativo Profissional</title>
+  <style>
+    :root { --amarelo:#ffcc00; --fundo:#000; --painel:#0a0a0a; --linha:#1b1b1b; --texto:#fff; --cinza:#999; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; min-height:100%; background:var(--fundo); color:var(--texto); font-family:"Segoe UI",Roboto,Arial,sans-serif; }
+    body { min-height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+    .topo-barra { min-height:80px; background:var(--painel); border-bottom:2px solid var(--linha); display:flex; justify-content:space-between; align-items:center; gap:20px; padding:12px 32px; }
+    .tempo-relogio { display:flex; align-items:center; gap:18px; min-width:0; }
+    .hora-digital { font-size:clamp(1.8rem,3vw,2.5rem); font-weight:800; color:var(--amarelo); letter-spacing:1px; white-space:nowrap; }
+    .data-digital { font-size:1rem; color:#aaa; text-transform:uppercase; font-weight:500; border-left:2px solid #333; padding-left:14px; }
+    .radio-widget { display:flex; align-items:center; flex-wrap:wrap; gap:12px; background:#121212; padding:8px 14px; border-radius:30px; border:1px solid #222; }
+    .radio-title { font-size:.8rem; text-transform:uppercase; letter-spacing:.5px; color:#aaa; font-weight:bold; }
+    .radio-controls { display:flex; align-items:center; gap:8px; }
+    .btn-radio { background:var(--amarelo); border:0; color:#000; font-weight:bold; padding:7px 12px; border-radius:18px; cursor:pointer; font-size:.75rem; text-transform:uppercase; }
+    .btn-radio:hover { background:#ffe066; }
+    .vol-slider { width:68px; accent-color:var(--amarelo); cursor:pointer; }
+    .painel-grid { flex:1; min-height:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .coluna { min-width:0; min-height:0; display:flex; flex-direction:column; padding:28px clamp(16px,2.4vw,38px); overflow:hidden; }
+    .coluna:not(:last-child) { border-right:1px solid #161616; }
+    .coluna-header { flex-shrink:0; font-size:clamp(1rem,1.4vw,1.35rem); font-weight:700; text-transform:uppercase; margin-bottom:22px; padding-bottom:12px; border-bottom:3px solid var(--amarelo); display:flex; align-items:center; gap:10px; letter-spacing:.4px; }
+    .noticias-container { flex:1; min-height:0; display:flex; flex-direction:column; gap:20px; overflow:auto; }
+    .item-noticia { border-left:4px solid var(--amarelo); padding-left:14px; animation:fadeIn .45s ease-in-out; }
+    .item-noticia h3 { font-size:clamp(.95rem,1.15vw,1.12rem); line-height:1.4; color:#fff; font-weight:600; margin-bottom:8px; }
+    .item-noticia span { display:inline-block; font-size:.72rem; text-transform:uppercase; color:var(--amarelo); font-weight:bold; background:#1a1a1a; padding:4px 7px; border-radius:4px; }
+    .item-noticia a { color:inherit; text-decoration:none; }
+    .item-noticia a:hover h3 { color:var(--amarelo); }
+    .biblia-container { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; text-align:center; overflow:auto; }
+    .texto-sagrado { font-size:clamp(1.15rem,1.65vw,1.55rem); font-style:italic; line-height:1.65; color:#e0e0e0; margin-bottom:24px; font-family:Georgia,serif; }
+    .referencia-sagrada { font-size:1rem; font-weight:700; color:var(--amarelo); text-transform:uppercase; letter-spacing:1px; }
+    .biblia-nota { margin-top:16px; color:#777; font-size:.78rem; }
+    .tempo-container { flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:12px; text-align:center; }
+    .cidade-nome { font-size:1.25rem; color:#888; font-weight:500; text-transform:uppercase; letter-spacing:1px; }
+    .icone-clima { font-size:3.2rem; line-height:1.2; }
+    .temperatura { font-size:clamp(4rem,6vw,6rem); font-weight:900; color:var(--amarelo); display:flex; align-items:flex-start; line-height:1; }
+    .temperatura span { font-size:2.2rem; font-weight:400; margin-top:9px; }
+    .condicao { font-size:1.2rem; font-weight:600; color:#fff; text-transform:uppercase; }
+    .detalhes-clima { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; color:#aaa; font-size:.9rem; margin-top:8px; }
+    .loading, .mensagem-erro { color:#777; font-style:italic; font-size:.95rem; line-height:1.5; }
+    .mensagem-erro { color:#b9a45c; }
+    .rodape-creditos { flex-shrink:0; height:30px; background:#000; text-align:right; padding:0 20px; line-height:30px; font-size:.7rem; color:#333; font-weight:bold; letter-spacing:.5px; border-top:1px solid #0a0a0a; }
+    @keyframes fadeIn { from { opacity:0; transform:translateX(-5px); } to { opacity:1; transform:translateX(0); } }
+    @media (max-width:900px) {
+      body { overflow:auto; }
+      .topo-barra { align-items:flex-start; flex-direction:column; padding:16px 20px; }
+      .painel-grid { grid-template-columns:1fr; }
+      .coluna { min-height:330px; padding:24px; }
+      .coluna:not(:last-child) { border-right:0; border-bottom:1px solid #222; }
+      .coluna-header { font-size:1.2rem; }
+      .noticias-container { overflow:visible; }
+      .rodape-creditos { margin-top:0; }
+    }
+    @media (max-width:480px) {
+      .tempo-relogio { gap:10px; flex-wrap:wrap; }
+      .data-digital { font-size:.78rem; }
+      .radio-widget { border-radius:16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topo-barra">
+    <div class="tempo-relogio">
+      <div class="hora-digital" id="relogio">--:--:--</div>
+      <div class="data-digital" id="data">Carregando data...</div>
+    </div>
+    <div class="radio-widget">
+      <span class="radio-title">📻 Rádio ao vivo</span>
+      <div class="radio-controls">
+        <button class="btn-radio" id="btn-play-pause" type="button">Play</button>
+        <button class="btn-radio" id="btn-mutar" type="button">Mudo</button>
+        <input aria-label="Volume da rádio" type="range" class="vol-slider" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
+      </div>
+    </div>
+  </header>
+
+  <!-- IMPORTANTE: troque RADIO_STREAM_URL pelo endereço DIRETO do áudio da emissora. -->
+  <audio id="audio-player" preload="none"></audio>
+
+  <main class="painel-grid">
+    <section class="coluna">
+      <h2 class="coluna-header">🌐 Destaques Globais</h2>
+      <div id="noticias" class="noticias-container" aria-live="polite">
+        <div class="loading">Sincronizando feeds de notícias...</div>
+      </div>
+    </section>
+
+    <section class="coluna">
+      <h2 class="coluna-header">📖 Palavra Sagrada</h2>
+      <div id="biblia" class="biblia-container" aria-live="polite">
+        <div class="loading">Carregando a palavra do dia...</div>
+      </div>
+    </section>
+
+    <section class="coluna">
+      <h2 class="coluna-header">☀️ Clima local</h2>
+      <div id="tempo" class="tempo-container" aria-live="polite">
+        <div class="loading">Consultando o clima de Guarulhos...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape-creditos">Diego Rodrigues NTI &copy;</footer>
+
+  <script>
+    'use strict';
+
+    // CONFIGURAÇÕES DO PAINEL
+    const CONFIG = {
+      latitude: -23.4542,
+      longitude: -46.5333,
+      cidade: 'Guarulhos / SP',
+      // Informe aqui a URL direta de streaming da rádio, se tiver.
+      radioStreamUrl: ''
+    };
+
+    const el = (id) => document.getElementById(id);
+
+    // 1. RELÓGIO E DATA
+    function atualizarRelogio() {
+      const agora = new Date();
+      el('relogio').textContent = agora.toLocaleTimeString('pt-BR', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+      el('data').textContent = agora.toLocaleDateString('pt-BR', {
+        weekday: 'long', day: '2-digit', month: 'short', year: 'numeric'
+      }).replace('.', '');
+    }
+    atualizarRelogio();
+    setInterval(atualizarRelogio, 1000);
+
+    // 2. RÁDIO: necessita de uma URL direta de streaming.
+    const player = el('audio-player');
+    const btnPlay = el('btn-play-pause');
+    const btnMute = el('btn-mutar');
+    const sliderVolume = el('volume-slider');
+
+    player.volume = Number(sliderVolume.value);
+
+    if (CONFIG.radioStreamUrl) {
+      player.src = CONFIG.radioStreamUrl;
+    } else {
+      btnPlay.title = 'Configure CONFIG.radioStreamUrl com o link direto do streaming.';
+    }
+
+    btnPlay.addEventListener('click', async () => {
+      if (!CONFIG.radioStreamUrl) {
+        alert('Para ativar a rádio, configure CONFIG.radioStreamUrl no código com o endereço direto do streaming de áudio.');
+        return;
+      }
+      if (player.paused) {
+        try {
+          await player.play();
+          btnPlay.textContent = 'Pausa';
+        } catch (erro) {
+          console.error('Falha ao iniciar a rádio:', erro);
+          alert('Não foi possível iniciar a rádio. Verifique o link do streaming e sua conexão.');
+        }
+      } else {
+        player.pause();
+        btnPlay.textContent = 'Play';
+      }
+    });
+
+    player.addEventListener('pause', () => { btnPlay.textContent = 'Play'; });
+    player.addEventListener('playing', () => { btnPlay.textContent = 'Pausa'; });
+    btnMute.addEventListener('click', () => {
+      player.muted = !player.muted;
+      btnMute.textContent = player.muted ? 'Ouvir' : 'Mudo';
+    });
+    sliderVolume.addEventListener('input', () => {
+      player.volume = Number(sliderVolume.value);
+    });
+
+    // 3. NOTÍCIAS: RSS2JSON é um serviço externo; pode ter limites ou indisponibilidade.
+    async function buscarNoticias() {
+      const container = el('noticias');
+      container.innerHTML = '<div class="loading">Carregando notícias...</div>';
+      const rssUrl = 'https://g1.globo.com/rss/g1/';
+      const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
+
+      try {
+        const resposta = await fetch(apiUrl);
+        if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+        const dados = await resposta.json();
+        if (dados.status !== 'ok' || !Array.isArray(dados.items) || dados.items.length === 0) {
+          throw new Error('Feed sem notícias disponíveis');
+        }
+
+        container.replaceChildren();
+        dados.items.slice(0, 5).forEach((item) => {
+          const artigo = document.createElement('article');
+          artigo.className = 'item-noticia';
+
+          const titulo = document.createElement('h3');
+          if (item.link) {
+            const link = document.createElement('a');
+            link.href = item.link;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = item.title || 'Notícia sem título';
+            titulo.appendChild(link);
+          } else {
+            titulo.textContent = item.title || 'Notícia sem título';
+          }
+
+          const fonte = document.createElement('span');
+          fonte.textContent = 'G1 Notícias';
+          artigo.append(titulo, fonte);
+          container.appendChild(artigo);
+        });
+      } catch (erro) {
+        console.error('Erro ao buscar notícias:', erro);
+        container.innerHTML = '<div class="mensagem-erro">Não foi possível carregar as notícias agora. O serviço de notícias pode estar indisponível. Tentaremos novamente em 15 minutos.</div>';
+      }
+    }
+
+    // 4. BÍBLIA: versículo diário estático por data, sem depender de API externa.
+    // Para manter a confiabilidade, a lista alterna entre versículos conhecidos.
+    const versiculos = [
+      { texto: 'O Senhor é o meu pastor; nada me faltará.', ref: 'Salmos 23:1' },
+      { texto: 'Tudo posso naquele que me fortalece.', ref: 'Filipenses 4:13' },
+      { texto: 'Entrega o teu caminho ao Senhor; confia nele, e ele tudo fará.', ref: 'Salmos 37:5' },
+      { texto: 'Aquietai-vos e sabei que eu sou Deus.', ref: 'Salmos 46:10' },
+      { texto: 'Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.', ref: 'Provérbios 3:5' },
+      { texto: 'Buscai primeiro o Reino de Deus, e a sua justiça, e todas essas coisas vos serão acrescentadas.', ref: 'Mateus 6:33' },
+      { texto: 'Não temas, porque eu sou contigo; não te assombres, porque eu sou teu Deus.', ref: 'Isaías 41:10' },
+      { texto: 'A resposta branda desvia o furor, mas a palavra dura suscita a ira.', ref: 'Provérbios 15:1' },
+      { texto: 'Sede uns para com os outros benignos, misericordiosos, perdoando-vos uns aos outros.', ref: 'Efésios 4:32' },
+      { texto: 'O amor é paciente, o amor é bondoso.', ref: '1 Coríntios 13:4' },
+      { texto: 'O choro pode durar uma noite, mas a alegria vem pela manhã.', ref: 'Salmos 30:5' },
+      { texto: 'Deleita-te também no Senhor, e ele te concederá o que deseja o teu coração.', ref: 'Salmos 37:4' },
+      { texto: 'Porque Deus não nos deu o espírito de temor, mas de fortaleza, e de amor, e de moderação.', ref: '2 Timóteo 1:7' },
+      { texto: 'A tua palavra é lâmpada para os meus pés e luz para o meu caminho.', ref: 'Salmos 119:105' }
+    ];
+
+    function carregarBiblia() {
+      const inicio = new Date(new Date().getFullYear(), 0, 0);
+      const hoje = new Date();
+      const diaDoAno = Math.floor((hoje - inicio) / 86400000);
+      const versiculo = versiculos[diaDoAno % versiculos.length];
+
+      el('biblia').innerHTML = '';
+      const texto = document.createElement('p');
+      texto.className = 'texto-sagrado';
+      texto.textContent = '“' + versiculo.texto + '”';
+      const referencia = document.createElement('p');
+      referencia.className = 'referencia-sagrada';
+      referencia.textContent = versiculo.ref;
+      const nota = document.createElement('p');
+      nota.className = 'biblia-nota';
+      nota.textContent = 'Palavra para meditar hoje';
+      el('biblia').append(texto, referencia, nota);
+    }
+
+    // 5. CLIMA: Open-Meteo não exige chave de API para uso normal.
+    function descricaoClima(codigo) {
+      if (codigo === 0) return ['Céu limpo', '☀️'];
+      if ([1, 2].includes(codigo)) return ['Parcialmente nublado', '🌤️'];
+      if (codigo === 3) return ['Nublado', '☁️'];
+      if ([45, 48].includes(codigo)) return ['Neblina', '🌫️'];
+      if ([51, 53, 55, 56, 57].includes(codigo)) return ['Garoa', '🌦️'];
+      if ([61, 63, 65, 66, 67, 80, 81, 82].includes(codigo)) return ['Chuva', '🌧️'];
+      if ([71, 73, 75, 77, 85, 86].includes(codigo)) return ['Neve', '❄️'];
+      if ([95, 96, 99].includes(codigo)) return ['Trovoadas', '⛈️'];
+      return ['Condição variável', '🌡️'];
+    }
+
+    async function buscarClima() {
+      const container = el('tempo');
+      container.innerHTML = '<div class="loading">Consultando o clima...</div>';
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${CONFIG.latitude}&longitude=${CONFIG.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=America%2FSao_Paulo`;
+
+      try {
+        const resposta = await fetch(url);
+        if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+        const dados = await resposta.json();
+        if (!dados.current) throw new Error('Resposta sem dados atuais');
+
+        const atual = dados.current;
+        const [condicao, icone] = descricaoClima(atual.weather_code);
+        container.innerHTML = '';
+
+        const cidade = document.createElement('div');
+        cidade.className = 'cidade-nome';
+        cidade.textContent = CONFIG.cidade;
+
+        const simbolo = document.createElement('div');
+        simbolo.className = 'icone-clima';
+        simbolo.textContent = icone;
+
+        const temperatura = document.createElement('div');
+        temperatura.className = 'temperatura';
+        const numero = document.createElement('strong');
+        numero.textContent = Math.round(atual.temperature_2m);
+        const unidade = document.createElement('span');
+        unidade.textContent = '°C';
+        temperatura.append(numero, unidade);
+
+        const condicaoEl = document.createElement('div');
+        condicaoEl.className = 'condicao';
+        condicaoEl.textContent = condicao;
+
+        const detalhes = document.createElement('div');
+        detalhes.className = 'detalhes-clima';
+        const sensacao = document.createElement('span');
+        sensacao.textContent = 'Sensação: ' + Math.round(atual.apparent_temperature) + '°C';
+        const umidade = document.createElement('span');
+        umidade.textContent = 'Umidade: ' + atual.relative_humidity_2m + '%';
+        const vento = document.createElement('span');
+        vento.textContent = 'Vento: ' + Math.round(atual.wind_speed_10m) + ' km/h';
+        detalhes.append(sensacao, umidade, vento);
+
+        container.append(cidade, simbolo, temperatura, condicaoEl, detalhes);
+      } catch (erro) {
+        console.error('Erro ao consultar clima:', erro);
+        container.innerHTML = '<div class="mensagem-erro">Não foi possível carregar o clima agora. Verifique a conexão e tente novamente mais tarde.</div>';
+      }
+    }
+
+    // Inicializa cada módulo independentemente para um erro não apagar o painel todo.
+    carregarBiblia();
+    buscarNoticias();
+    buscarClima();
+    setInterval(buscarNoticias, 15 * 60 * 1000);
+    setInterval(buscarClima, 10 * 60 * 1000);
+  </script>
+</body>
+</html>
